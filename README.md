@@ -19,13 +19,19 @@ a daemon launcher like start-stop-daemon to run it.
 
 On my setup I perform the following actions to deploy nullserv and run it
 as user nobody.
+
 1. Compile nullserv: $ go build
+
 2. Copy the binary as root: # cp nullserv /usr/local/bin
+
 3. Change the permissions: chown root:nogroup /usr/local/bin/nullserv; chmod 750 /usr/local/bin/nullserv
+
 4. Use Linux capabilities: setcap 'cap_net_bind_service=+ep' /usr/local/bin/nullserv
+
 5. Launch the binary: /sbin/start-stop-daemon -S -b -c nobody:nogroup -x /usr/local/bin/nullserv
 
 ## Command line interface
+```
 $ ./nullserv -h
 Usage of ./nullserv:
   -A string
@@ -40,6 +46,7 @@ Usage of ./nullserv:
         http port (default 80)
   -v int
         verbose 0..9 (default 0)
+```
 
 # Background
 The idea for nullserv came from another GitHub project,
