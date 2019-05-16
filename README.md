@@ -20,7 +20,7 @@ a daemon launcher like start-stop-daemon to run it.
 On my setup I perform the following actions to deploy nullserv and run it
 as user nobody.
 
-1. Compile nullserv: $ go build
+1. Compile nullserv: $ make
 
 2. Copy the binary as root: # cp nullserv /usr/local/bin
 
