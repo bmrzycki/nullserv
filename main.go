@@ -38,37 +38,41 @@ func abortTLS(conn net.Conn) {
 func nullHandler(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.QueryUnescape(r.URL.String())
 
+	// RFC 3986, Section 3 lists '?' as a query delimiter,
+	// '#' as a fragment delimiter, and ';' as a sub-delimiter.
+	// All three cannot be part of the path. Remove them.
 	for _, value := range []string{"?", ";", "#"} {
 		if strings.Contains(u, value) {
 			u = strings.Split(u, value)[0]
 		}
 	}
 
+	// Obtain the file suffix in the URI, if any.
 	suffix := ""
-	if strings.Contains(u, ".") {
-		tmp := strings.Split(u, ".")
-		suffix = strings.ToLower(tmp[len(tmp)-1])
+	idx := strings.LastIndex(u, ".")
+	if idx != -1 {
+		suffix = u[idx+1:len(u)]
 	}
 
-	// Locate alternate suffix spellings or related file types
+	// If this is an alternate suffix, replace with the real one.
 	if realSuffix, ok := AltSuffix[suffix]; ok == true {
 		suffix = realSuffix
 	}
 
+	// These are suffixes where we return 404, not found.
 	if _, ok := NotFoundFiles[suffix]; ok == true {
 		http.NotFound(w, r)
 		return
 	}
 
+	// Fetch the null file for this suffix. Use HTML as the default case.
+	f, ok := nullFiles[suffix]
+	if ok != true {
+		f = nullFiles["html"]
+	}
 	w.Header().Set("Cache-Control", "public, max-age=" + maxAge)
-	if f, ok := nullFiles[suffix]; ok == true {
-		w.Header().Set("Content-Type", f.content)
-		if f.data != nil {
-			w.Write(f.data)
-		}
-	} else {
-		f = nullFiles["html"] // unknown suffixes become HTML
-		w.Header().Set("Content-Type", f.content)
+	w.Header().Set("Content-Type", f.content)
+	if f.data != nil {
 		w.Write(f.data)
 	}
 }
