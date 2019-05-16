@@ -2,81 +2,41 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"log/syslog"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
-type nullCounter map[string]int
+var maxAge string
 
-type logMsg struct {
-	pri syslog.Priority
-	str string
+func abortTLS(conn net.Conn) {
+	// This sends a TLS v1.2 alert packet regardless of query.
+	// We respond the certificate authority (CA) that issued
+	// the requesters certificate is unknown to us. This is possibly
+	// the shortest response to a TLS (HTTPS) connection which
+	// initiates a graceful shutdown on both ends.
+	//
+	// Note: This isn't TLS 1.3 compatible. Once browsers start
+	//       deprecating 1.2 this will need to be overhauled. The
+	//       1.3 specification is nothing like 1.2.
+	//
+	// The original idea came from h0tw1r3. Relevant projects:
+	//  https://github.com/kvic-z/pixelserv-tls/wiki/Command-Line-Options
+	//  https://github.com/h0tw1r3/pixelserv/blob/master/pixelserv.c
+	_, _ = conn.Write([]byte{
+		'\x15',         // Alert protocol header (21)
+		'\x03', '\x03', // TLS v1.2 (RFC 5246)
+		'\x00', '\x02', // Message length (2)
+		'\x02',         // Alert level fatal (2)
+		'\x30'})        // Unknown Certificate Authority (48)
+	conn.Close()
 }
 
-const pkgName = "nullserv"
-
-var maxAge int
-var verbose int
-var stats chan string
-var msg chan logMsg
-
-func doLog(p syslog.Priority, s string) {
-	msg <- logMsg{
-		pri: p,
-		str: s,
-	}
-}
-
-// Inspired by:
-//   https://github.com/h0tw1r3/pixelserv/blob/master/pixelserv.c
-func fakeHTTPS(l net.Listener) (err error) {
-	conn, err := l.Accept()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	if verbose > 0 {
-		doLog(syslog.LOG_NOTICE, "HTTPS (?)")
-	}
-
-	buf := make([]byte, 1024)
-	_, err = conn.Read(buf)
-	if err != nil {
-		return err
-	}
-
-	// Always respond with a TLS access denied error
-	_, err = conn.Write([]byte{
-		'\x15',         // Alert 21
-		'\x03', '\x00', // Version 3.0
-		'\x00', '\x02', // Length == 2
-		'\x02', // Fatal event
-		'\x31', // 0x31 == TLS access denied (49)
-	})
-	if err != nil {
-		return err
-	}
-	stats <- "(https)"
-	return nil
-}
-
-func adservHandler(w http.ResponseWriter, r *http.Request) {
+func nullHandler(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.QueryUnescape(r.URL.String())
-
-	if verbose > 0 {
-		doLog(syslog.LOG_NOTICE,
-			fmt.Sprintf("HTTP %s %s", r.Host, u))
-	}
 
 	for _, value := range []string{"?", ";", "#"} {
 		if strings.Contains(u, value) {
@@ -90,23 +50,17 @@ func adservHandler(w http.ResponseWriter, r *http.Request) {
 		suffix = strings.ToLower(tmp[len(tmp)-1])
 	}
 
-	if verbose > 0 {
-		doLog(syslog.LOG_NOTICE,
-			fmt.Sprintf("HTTP (%s)", suffix))
-	}
-
-	if _, ok := NotFoundFiles[suffix]; ok == true {
-		http.NotFound(w, r)
-		stats <- "(not found)"
-		return
-	}
-
 	// Locate alternate suffix spellings or related file types
 	if realSuffix, ok := AltSuffix[suffix]; ok == true {
 		suffix = realSuffix
 	}
 
-	w.Header().Set("Cache-Control", "max-age="+strconv.Itoa(maxAge))
+	if _, ok := NotFoundFiles[suffix]; ok == true {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "max-age=" + maxAge)
 	if f, ok := nullFiles[suffix]; ok == true {
 		w.Header().Set("Content-Type", f.content)
 		if f.data != nil {
@@ -117,114 +71,39 @@ func adservHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", f.content)
 		w.Write(f.data)
 	}
-	stats <- suffix
-}
-
-func statHandler() {
-	count := make(map[string]int)
-	for {
-		suffix := <-stats
-		if suffix == "__show__" {
-			doLog(syslog.LOG_NOTICE, fmt.Sprintf("%v", count))
-			count = make(map[string]int) // reset all counters
-		} else {
-			if _, ok := count[suffix]; ok == true {
-				count[suffix]++
-			} else {
-				count[suffix] = 1
-			}
-		}
-	}
-}
-
-func logHandler() {
-	useLog := false
-	sl, err := syslog.New(syslog.LOG_NOTICE, pkgName)
-	if err != nil {
-		useLog = true
-	}
-	defer sl.Close()
-	for {
-		m := <-msg
-		switch {
-		case useLog == true:
-			log.Println(m.str)
-		case m.pri == syslog.LOG_ERR:
-			sl.Err(m.str)
-		default:
-			sl.Notice(m.str)
-		}
-	}
 }
 
 func main() {
-	// Setup command line arguments
-	httpAddrPtr := flag.String("a", "", "http address (default all)")
-	httpPortPtr := flag.Int("p", 80, "http port")
-	httpsAddrPtr := flag.String("A", "", "https address (default all)")
-	httpsPortPtr := flag.Int("P", 443, "https port")
-	maxAgePtr := flag.Int("m", 604800, "content cache age in secs")
-	verbosePtr := flag.Int("v", 0, "verbose 0..9 (default 0)")
+	// Parse command line arguments
+	httpAddr := flag.String("a", "", "http address (default '' = all)")
+	httpPort := flag.Int("p", 80, "http port")
+	httpsAddr := flag.String("A", "", "https address (default '' = all)")
+	httpsPort := flag.Int("P", 443, "https port")
+	tmpMaxAge := flag.Int("m", 604800, "content cache age in secs")
 	flag.Parse()
-
-	maxAge = *maxAgePtr
-	verbose = *verbosePtr
-
-	stats = make(chan string, 10) // arbitrary size: grow when prog pauses
-	go statHandler()
-
-	msg = make(chan logMsg, 10) // arbitrary size: grow when prog pauses
-	go logHandler()
+	maxAge = strconv.Itoa(*tmpMaxAge)
 
 	// Starting HTTP server
-	addr := *httpAddrPtr + ":" + strconv.Itoa(*httpPortPtr)
-	http.HandleFunc("/", adservHandler)
+	addr := *httpAddr + ":" + strconv.Itoa(*httpPort)
+	http.HandleFunc("/", nullHandler)
 	go func() {
-		doLog(syslog.LOG_NOTICE, "Starting HTTP service on "+addr)
 		if err := http.ListenAndServe(addr, nil); err != nil {
-			doLog(syslog.LOG_ERR,
-				"http.ListenAndServe error "+err.Error())
+			log.Fatal("HTTP service error: " + err.Error())
 		}
 	}()
 
-	// Starting fake HTTPS server
-	sslAddr := *httpsAddrPtr + ":" + strconv.Itoa(*httpsPortPtr)
-	doLog(syslog.LOG_NOTICE, "Starting fake HTTPS service on "+sslAddr)
+	// Starting the abort TLS (HTTPS) server
+	sslAddr := *httpsAddr + ":" + strconv.Itoa(*httpsPort)
 	l, err := net.Listen("tcp", sslAddr)
 	if err != nil {
-		doLog(syslog.LOG_ERR,
-			"net.Listen HTTPS error "+err.Error())
+		log.Fatal("Abort TLS listen error: " + err.Error())
 	}
-	go func() {
-		for {
-			if err := fakeHTTPS(l); err != nil {
-				doLog(syslog.LOG_ERR, "fakeHTTPS error "+err.Error())
-			}
+	defer l.Close()
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			log.Println("Abort TLS accept error: " + err.Error())
 		}
-	}()
-
-	// Starting signal listener
-	done := make(chan bool, 1)
-	go func() {
-		sigChan := make(chan os.Signal)
-		for {
-			signal.Notify(sigChan, syscall.SIGTERM,
-				syscall.SIGUSR1, syscall.SIGUSR2)
-			sig := <-sigChan
-			if sig == syscall.SIGTERM {
-				doLog(syslog.LOG_NOTICE, "Exiting on SIGTERM")
-				done <- true
-			} else if sig == syscall.SIGUSR1 {
-				stats <- "__show__"
-			} else if sig == syscall.SIGUSR2 {
-				verbose++
-				if verbose > 9 {
-					verbose = 0
-				}
-				doLog(syslog.LOG_NOTICE,
-					"debug level "+strconv.Itoa(verbose))
-			}
-		}
-	}()
-	<-done
+		go abortTLS(conn)
+	}
 }
