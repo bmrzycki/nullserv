@@ -18,6 +18,7 @@ var NotFoundFiles = map[string]bool{
 	"iso":  true,
 	"java": true,
 	"mov":  true,
+	"mp3":  true,
 	"mp4":  true,
 	"pdf":  true,
 	"ppt":  true,
