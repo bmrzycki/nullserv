@@ -60,7 +60,7 @@ func nullHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Cache-Control", "max-age=" + maxAge)
+	w.Header().Set("Cache-Control", "public, max-age=" + maxAge)
 	if f, ok := nullFiles[suffix]; ok == true {
 		w.Header().Set("Content-Type", f.content)
 		if f.data != nil {
@@ -79,7 +79,7 @@ func main() {
 	httpPort := flag.Int("p", 80, "http port")
 	httpsAddr := flag.String("A", "", "https address (default '' = all)")
 	httpsPort := flag.Int("P", 443, "https port")
-	tmpMaxAge := flag.Int("m", 604800, "content cache age in secs")
+	tmpMaxAge := flag.Int("m", 31536000, "content cache age in secs")
 	flag.Parse()
 	maxAge = strconv.Itoa(*tmpMaxAge)
 
