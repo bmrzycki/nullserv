@@ -1,7 +1,11 @@
 # nullserv
 
 ## What is it?
-It's a simple null http and https server written using Go 1.5.
+It's a simple null http and https server originally written using Go 1.5.
+The language has evolved considerably since then but I've tried to keep
+the code as close to this version as I can. This also means I haven't
+pulled in any third-party packages to minimize dependency issues on
+older embedded devices.
 
 ## Why would I want it?
 Because you're running a DNS ad blocker and you want a server that
@@ -9,7 +13,14 @@ understands several file extensions and returns cached, minimal files for
 each.
 
 ## How do I install it?
-Pull the repo, install Google Go and run Go build.
+Pull the repo, install Google Go and run make. Why use make instead of
+go build? I need to dynamically generate version.go as well as compile
+a small helper program (written in clean ANSI C) that generates Go's
+[]byte{...} syntax.
+
+If the idea of using make is abhorrent to you then you can just run:
+    ./go_ver.sh
+    go build -o nullsrv *.go
 
 ## Lower numbered-ports
 Listening on TCP ports lower than 1024 usually requires special OS access.
