@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var maxAge string
+var maxAgeVal string
 
 func abortTLS(conn net.Conn) {
 	// This sends a TLS v1.2 alert packet regardless of query.
@@ -26,12 +26,12 @@ func abortTLS(conn net.Conn) {
 	// The original idea came from h0tw1r3. Relevant projects:
 	//  https://github.com/kvic-z/pixelserv-tls/wiki/Command-Line-Options
 	//  https://github.com/h0tw1r3/pixelserv/blob/master/pixelserv.c
-	_, _ = conn.Write([]byte{
+	conn.Write([]byte{
 		'\x15',         // Alert protocol header (21)
 		'\x03', '\x03', // TLS v1.2 (RFC 5246)
 		'\x00', '\x02', // Message length (2)
-		'\x02',         // Alert level fatal (2)
-		'\x30'})        // Unknown Certificate Authority (48)
+		'\x02',  // Alert level fatal (2)
+		'\x30'}) // Unknown Certificate Authority (48)
 	conn.Close()
 }
 
@@ -49,9 +49,8 @@ func nullHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Obtain the file suffix in the URI, if any.
 	suffix := ""
-	idx := strings.LastIndex(u, ".")
-	if idx != -1 {
-		suffix = u[idx+1:len(u)]
+	if idx := strings.LastIndex(u, "."); idx != -1 {
+		suffix = u[idx+1 : len(u)]
 	}
 
 	// If this is an alternate suffix, replace with the real one.
@@ -70,7 +69,7 @@ func nullHandler(w http.ResponseWriter, r *http.Request) {
 	if ok != true {
 		f = nullFiles["html"]
 	}
-	w.Header().Set("Cache-Control", "public, max-age=" + maxAge)
+	w.Header().Set("Cache-Control", maxAgeVal)
 	w.Header().Set("Content-Type", f.content)
 	if f.data != nil {
 		w.Write(f.data)
@@ -83,9 +82,9 @@ func main() {
 	httpPort := flag.Int("p", 80, "http port")
 	httpsAddr := flag.String("A", "", "https address (default '' = all)")
 	httpsPort := flag.Int("P", 443, "https port")
-	tmpMaxAge := flag.Int("m", 31536000, "content cache age in secs")
+	maxAge := flag.Int("m", 31536000, "content cache age in secs")
 	flag.Parse()
-	maxAge = strconv.Itoa(*tmpMaxAge)
+	maxAgeVal = "public, max-age=" + strconv.Itoa(*maxAge)
 
 	// Starting HTTP server
 	addr := *httpAddr + ":" + strconv.Itoa(*httpPort)
