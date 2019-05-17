@@ -1,6 +1,6 @@
 package main
 
-type nullFile struct {
+type NullFile struct {
 	data    []byte
 	content string
 }
@@ -42,7 +42,7 @@ var NotFoundFiles = map[string]bool{
 	"zip":  true,
 }
 
-// AltSuffix maps alternative extensions to other valid nullFiles
+// AltSuffix maps alternative extensions to other valid NullFiles
 var AltSuffix = map[string]string{
 	"asp":  "html",
 	"aspx": "html",
@@ -61,17 +61,17 @@ var AltSuffix = map[string]string{
 }
 
 // All known nullfiles
-var nullFiles = map[string]nullFile{
-	"": nullFile{nil, "text/plain"}, // Catch-all empty suffix
-	"bmp": nullFile{[]byte{
+var NullFiles = map[string]NullFile{
+	"": NullFile{nil, "text/plain"}, // Catch-all empty suffix
+	"bmp": NullFile{[]byte{
 		'\x42', '\x4d', '\x1e', '\x00', '\x00', '\x00', '\x00', '\x00',
 		'\x00', '\x00', '\x1a', '\x00', '\x00', '\x00', '\x0c', '\x00',
 		'\x00', '\x00', '\x01', '\x00', '\x01', '\x00', '\x01', '\x00',
 		'\x18', '\x00', '\x00', '\x00', '\xff', '\x00',
 	}, "image/bmp"},
-	"css": nullFile{nil, "text/css"},
-	"csv": nullFile{nil, "text/csv"},
-	"gif": nullFile{[]byte{
+	"css": NullFile{nil, "text/css"},
+	"csv": NullFile{nil, "text/csv"},
+	"gif": NullFile{[]byte{
 		'\x47', '\x49', '\x46', '\x38', '\x39', '\x61', '\x01', '\x00',
 		'\x01', '\x00', '\x80', '\x00', '\x00', '\xff', '\xff', '\xff',
 		'\x00', '\x00', '\x00', '\x21', '\xf9', '\x04', '\x01', '\x00',
@@ -79,9 +79,9 @@ var nullFiles = map[string]nullFile{
 		'\x01', '\x00', '\x01', '\x00', '\x00', '\x02', '\x02', '\x44',
 		'\x01', '\x00', '\x3b',
 	}, "image/gif"},
-	"html": nullFile{[]byte("<!DOCTYPE html><title>x</title>"),
+	"html": NullFile{[]byte("<!DOCTYPE html><title>x</title>"),
 		"text/html"},
-	"ico": nullFile{[]byte{
+	"ico": NullFile{[]byte{
 		'\x00', '\x00', '\x01', '\x00', '\x01', '\x00', '\x01', '\x01',
 		'\x00', '\x00', '\x01', '\x00', '\x18', '\x00', '\x30', '\x00',
 		'\x00', '\x00', '\x16', '\x00', '\x00', '\x00', '\x28', '\x00',
@@ -92,7 +92,7 @@ var nullFiles = map[string]nullFile{
 		'\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
 		'\xff', '\x00', '\x00', '\x00', '\x00', '\x00',
 	}, "image/x-icon"},
-	"jpg": nullFile{[]byte{
+	"jpg": NullFile{[]byte{
 		'\xff', '\xd8', '\xff', '\xe0', '\x00', '\x10', '\x4a', '\x46',
 		'\x49', '\x46', '\x00', '\x01', '\x01', '\x01', '\x00', '\x01',
 		'\x00', '\x01', '\x00', '\x00', '\xff', '\xdb', '\x00', '\x43',
@@ -114,9 +114,9 @@ var nullFiles = map[string]nullFile{
 		'\x00', '\x00', '\xff', '\xda', '\x00', '\x08', '\x01', '\x01',
 		'\x00', '\x00', '\x3f', '\x00', '\x47', '\xff', '\xd9',
 	}, "image/jpg"},
-	"js":   nullFile{nil, "application/javascript"},
-	"json": nullFile{[]byte("{}"), "application/json"},
-	"png": nullFile{[]byte{
+	"js":   NullFile{nil, "application/javascript"},
+	"json": NullFile{[]byte("{}"), "application/json"},
+	"png": NullFile{[]byte{
 		'\x89', '\x50', '\x4e', '\x47', '\x0d', '\x0a', '\x1a', '\x0a',
 		'\x00', '\x00', '\x00', '\x0d', '\x49', '\x48', '\x44', '\x52',
 		'\x00', '\x00', '\x00', '\x01', '\x00', '\x00', '\x00', '\x01',
@@ -127,7 +127,7 @@ var nullFiles = map[string]nullFile{
 		'\x00', '\x00', '\x00', '\x49', '\x45', '\x4e', '\x44', '\xae',
 		'\x42', '\x60', '\x82',
 	}, "image/png"},
-	"tiff": nullFile{[]byte{
+	"tiff": NullFile{[]byte{
 		'\x4d', '\x4d', '\x00', '\x2a', '\x00', '\x00', '\x00', '\x08',
 		'\x00', '\x07', '\x01', '\x00', '\x00', '\x03', '\x00', '\x00',
 		'\x00', '\x01', '\x00', '\x01', '\x00', '\x00', '\x01', '\x01',
@@ -143,7 +143,7 @@ var nullFiles = map[string]nullFile{
 		'\x00', '\x00', '\x20', '\x20', '\x20', '\x62', '\x79', '\x20',
 		'\x61', '\x6c', '\x6f', '\x6b',
 	}, "image/tiff"},
-	"svg": nullFile{[]byte{
+	"svg": NullFile{[]byte{
 		'\x3c', '\x73', '\x76', '\x67', '\x20', '\x78', '\x6d', '\x6c',
 		'\x6e', '\x73', '\x3d', '\x22', '\x68', '\x74', '\x74', '\x70',
 		'\x3a', '\x2f', '\x2f', '\x77', '\x77', '\x77', '\x2e', '\x77',
@@ -151,17 +151,17 @@ var nullFiles = map[string]nullFile{
 		'\x30', '\x30', '\x2f', '\x73', '\x76', '\x67', '\x22', '\x2f',
 		'\x3e',
 	}, "image/svg+xml"},
-	"ver": nullFile{[]byte("{\n" +
-		"    \"date\"    : \"" + buildInfo["date"] + "\",\n" +
-		"    \"sha\"     : \"" + buildInfo["sha"] + "\",\n" +
-		"    \"state\"   : \"" + buildInfo["state"] + "\",\n" +
-		"    \"version\" : \"" + buildInfo["version"] + "\"\n" +
+	"ver": NullFile{[]byte("{\n" +
+		"    \"date\"    : \"" + BuildInfo["date"] + "\",\n" +
+		"    \"sha\"     : \"" + BuildInfo["sha"] + "\",\n" +
+		"    \"state\"   : \"" + BuildInfo["state"] + "\",\n" +
+		"    \"version\" : \"" + BuildInfo["version"] + "\"\n" +
 		"}",
 	), "application/json"},
-	"wasm": nullFile{[]byte{
+	"wasm": NullFile{[]byte{
 		'\x00', '\x61', '\x73', '\x6d', '\x01', '\x00', '\x00', '\x00',
 	}, "application/wasm"},
-	"xhtml": nullFile{[]byte{
+	"xhtml": NullFile{[]byte{
 		'\x3c', '\x68', '\x74', '\x6d', '\x6c', '\x20', '\x78', '\x6d',
 		'\x6c', '\x6e', '\x73', '\x3d', '\x22', '\x68', '\x74', '\x74',
 		'\x70', '\x3a', '\x2f', '\x2f', '\x77', '\x77', '\x77', '\x2e',
@@ -169,7 +169,7 @@ var nullFiles = map[string]nullFile{
 		'\x39', '\x39', '\x39', '\x2f', '\x78', '\x68', '\x74', '\x6d',
 		'\x6c', '\x22', '\x2f', '\x3e',
 	}, "application/xhtml+xml"},
-	"xml": nullFile{[]byte{
+	"xml": NullFile{[]byte{
 		'\x3c', '\x3f', '\x78', '\x6d', '\x6c', '\x20', '\x76', '\x65',
 		'\x72', '\x73', '\x69', '\x6f', '\x6e', '\x3d', '\x22', '\x31',
 		'\x2e', '\x31', '\x22', '\x3f', '\x3e', '\x3c', '\x21', '\x44',

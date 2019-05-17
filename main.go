@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-var maxAgeVal string
+var MaxAgeVal string
 
-func abortTLS(conn net.Conn) {
+func AbortTLSListener(conn net.Conn) {
 	// This sends a TLS v1.2 alert packet regardless of query.
 	// We respond the certificate authority (CA) that issued
 	// the requesters certificate is unknown to us. This is possibly
@@ -35,7 +35,7 @@ func abortTLS(conn net.Conn) {
 	conn.Close()
 }
 
-func nullHandler(w http.ResponseWriter, r *http.Request) {
+func NullHandler(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.QueryUnescape(r.URL.String())
 
 	// RFC 3986, Section 3 lists '?' as a query delimiter,
@@ -65,11 +65,11 @@ func nullHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the null file for this suffix. Use HTML as the default case.
-	f, ok := nullFiles[suffix]
+	f, ok := NullFiles[suffix]
 	if ok != true {
-		f = nullFiles["html"]
+		f = NullFiles["html"]
 	}
-	w.Header().Set("Cache-Control", maxAgeVal)
+	w.Header().Set("Cache-Control", MaxAgeVal)
 	w.Header().Set("Content-Type", f.content)
 	if f.data != nil {
 		w.Write(f.data)
@@ -84,11 +84,11 @@ func main() {
 	httpsPort := flag.Int("P", 443, "https port")
 	maxAge := flag.Int("m", 31536000, "content cache age in secs")
 	flag.Parse()
-	maxAgeVal = "public, max-age=" + strconv.Itoa(*maxAge)
+	MaxAgeVal = "public, max-age=" + strconv.Itoa(*maxAge)
 
 	// Starting HTTP server
 	addr := *httpAddr + ":" + strconv.Itoa(*httpPort)
-	http.HandleFunc("/", nullHandler)
+	http.HandleFunc("/", NullHandler)
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatal("HTTP service error: " + err.Error())
@@ -107,6 +107,6 @@ func main() {
 		if err != nil {
 			log.Println("Abort TLS accept error: " + err.Error())
 		}
-		go abortTLS(conn)
+		go AbortTLSListener(conn)
 	}
 }
