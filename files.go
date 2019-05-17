@@ -151,6 +151,13 @@ var nullFiles = map[string]nullFile{
 		'\x30', '\x30', '\x2f', '\x73', '\x76', '\x67', '\x22', '\x2f',
 		'\x3e',
 	}, "image/svg+xml"},
+	"ver": nullFile{[]byte("{\n" +
+		"    \"date\"    : \"" + buildInfo["date"] + "\",\n" +
+		"    \"sha\"     : \"" + buildInfo["sha"] + "\",\n" +
+		"    \"state\"   : \"" + buildInfo["state"] + "\",\n" +
+		"    \"version\" : \"" + buildInfo["version"] + "\"\n" +
+		"}",
+	), "application/json"},
 	"wasm": nullFile{[]byte{
 		'\x00', '\x61', '\x73', '\x6d', '\x01', '\x00', '\x00', '\x00',
 	}, "application/wasm"},
