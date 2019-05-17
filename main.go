@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net"
@@ -8,9 +9,16 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 )
 
+type SafeCounter struct {
+	v   map[string]uint64
+	mux sync.Mutex
+}
+
 var MaxAgeVal string
+var Stats SafeCounter
 
 func AbortTLSListener(conn net.Conn) {
 	// This sends a TLS v1.2 alert packet regardless of query.
@@ -33,6 +41,10 @@ func AbortTLSListener(conn net.Conn) {
 		'\x02',  // Alert level fatal (2)
 		'\x30'}) // Unknown Certificate Authority (48)
 	conn.Close()
+
+	Stats.mux.Lock()
+	defer Stats.mux.Unlock()
+	Stats.v["_transport_https"]++
 }
 
 func NullHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +68,24 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	// If this is an alternate suffix, replace with the real one.
 	if realSuffix, ok := AltSuffix[suffix]; ok == true {
 		suffix = realSuffix
+	}
+
+	Stats.mux.Lock()
+	defer Stats.mux.Unlock()
+	Stats.v["_transport_http"]++
+	Stats.v[suffix]++
+
+	// Special suffix "stats" emits stats about nullsrv as JSON.
+	if suffix == "stats" {
+		w.Header().Set("Cache-Control", "max-age=0")
+		w.Header().Set("Content-Type", "application/json")
+		json, err := json.MarshalIndent(Stats.v, "", "    ")
+		if err != nil {
+			w.Write([]byte("{}"))
+		} else {
+			w.Write(json)
+		}
+		return
 	}
 
 	// These are suffixes where we return 404, not found.
@@ -84,7 +114,10 @@ func main() {
 	httpsPort := flag.Int("P", 443, "https port")
 	maxAge := flag.Int("m", 31536000, "content cache age in secs")
 	flag.Parse()
+
+	// Initialize globals
 	MaxAgeVal = "public, max-age=" + strconv.Itoa(*maxAge)
+	Stats = SafeCounter{v: make(map[string]uint64)}
 
 	// Starting HTTP server
 	addr := *httpAddr + ":" + strconv.Itoa(*httpPort)
