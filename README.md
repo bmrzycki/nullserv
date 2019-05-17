@@ -19,8 +19,10 @@ a small helper program (written in clean ANSI C) that generates Go's
 []byte{...} syntax.
 
 If the idea of using make is abhorrent to you then you can just run:
-    ./go_ver.sh
-    go build -o nullsrv *.go
+```
+$ ./go_ver.sh
+$ go build -o nullsrv *.go
+```
 
 ## Lower numbered-ports
 Listening on TCP ports lower than 1024 usually requires special OS access.
