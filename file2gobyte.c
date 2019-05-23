@@ -20,9 +20,9 @@ int main(int argc, char *argv[]) {
      f_sz = ftell(f);
      rewind(f);
 
-     printf("fileName := \"%s\"\n", argv[1]);
-     printf("fileSize := %ld\n", f_sz);
-     printf("fileData := []byte{\n\t\t");
+     printf("FileName := \"%s\"\n", argv[1]);
+     printf("FileSize := %ld\n", f_sz);
+     printf("FileData := []byte{\n\t\t");
 
      for (i=0; i < f_sz; i++) {
 	  c = fgetc(f);
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	       printf(" ");
      }
 
-     fclose(f);
      printf("\n}\n");
+     fclose(f);
      return 0;
 }
