@@ -1,0 +1,12 @@
+{
+    "max_age" : 31536000,
+    "verbose" : 0,
+    "http" : {
+	"address" : "",
+	"port" : 80
+    },
+    "https" : {
+	"address" : "",
+	"port" : 443
+    }
+}

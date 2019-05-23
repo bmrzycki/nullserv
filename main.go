@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"log"
 	"net"
 	"net/http"
@@ -107,30 +106,23 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Parse command line arguments
-	httpAddr := flag.String("a", "", "http address (default '' = all)")
-	httpPort := flag.Int("p", 80, "http port")
-	httpsAddr := flag.String("A", "", "https address (default '' = all)")
-	httpsPort := flag.Int("P", 443, "https port")
-	maxAge := flag.Int("m", 31536000, "content cache age in secs")
-	flag.Parse()
-
 	// Initialize globals
-	MaxAgeVal = "public, max-age=" + strconv.Itoa(*maxAge)
+	ConfInit()
 	Stats = SafeCounter{v: make(map[string]uint64)}
+	MaxAgeVal = "public, max-age=" + strconv.Itoa(Config.MaxAge)
 
 	// Starting HTTP server
-	addr := *httpAddr + ":" + strconv.Itoa(*httpPort)
+	a := Config.Http.Address + ":" + strconv.Itoa(Config.Http.Port)
 	http.HandleFunc("/", NullHandler)
 	go func() {
-		if err := http.ListenAndServe(addr, nil); err != nil {
+		if err := http.ListenAndServe(a, nil); err != nil {
 			log.Fatal("HTTP service error: " + err.Error())
 		}
 	}()
 
 	// Starting the abort TLS (HTTPS) server
-	sslAddr := *httpsAddr + ":" + strconv.Itoa(*httpsPort)
-	l, err := net.Listen("tcp", sslAddr)
+	sa := Config.Https.Address + ":" + strconv.Itoa(Config.Https.Port)
+	l, err := net.Listen("tcp", sa)
 	if err != nil {
 		log.Fatal("Abort TLS listen error: " + err.Error())
 	}

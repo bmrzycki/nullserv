@@ -1,0 +1,12 @@
+{
+    "max_age" : 0,
+    "verbose" : 2,
+    "http" : {
+	"address" : "127.0.0.1",
+	"port" : 9000
+    },
+    "https" : {
+	"address" : "127.0.0.1",
+	"port" : 9001
+    }
+}

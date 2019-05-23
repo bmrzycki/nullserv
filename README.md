@@ -45,20 +45,41 @@ as user nobody.
 
 ## Command line interface
 ```
-$ ./nullserv -h
-Usage of ./nullserv:
+Usage of ./nullsrv:
   -A string
-        https address (default all)
+    	https address (default '' = all)
   -P int
-        https port (default 443)
+    	https port (default 443)
   -a string
-        http address (default all)
+    	http address (default '' = all)
+  -c string
+    	JSON config file
   -m int
-        content cache age in secs (default 604800)
+    	content cache age in secs (default 31536000)
   -p int
-        http port (default 80)
+    	http port (default 80)
   -v int
-        verbose 0..9 (default 0)
+    	verbose level
+```
+
+## Config files
+You can use JSON files as a configuration file for nullsrv. There are several
+examples in the example_confs/ subdirectory.  Note that the contents of a
+configuration file overrides what is passed in on the command line. Here's
+a simple config file when listening on the standard ports on all interfaces:
+```
+{
+    "max_age" : 31536000,
+    "verbose" : 0,
+    "http" : {
+	"address" : "",
+	"port" : 80
+    },
+    "https" : {
+	"address" : "",
+	"port" : 443
+    }
+}
 ```
 
 # Background
