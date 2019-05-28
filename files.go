@@ -56,6 +56,7 @@ var AltSuffix = map[string]string{
 	"m4p":  "mp4",
 	"m4r":  "mp4",
 	"m4v":  "mp4",
+	"stat": "stats",
 	"tif":  "tiff",
 	"xht":  "xhtml",
 }
