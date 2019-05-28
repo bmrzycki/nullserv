@@ -8,12 +8,12 @@ ifneq ($(DEBUG),)
 endif
 
 .PHONY: clean all
-all: file2gobyte nullsrv
+all: file2gobyte nullserv
 file2gobyte: file2gobyte.c
 	$(CC) -O3 -Wall $< -o $@
 version.go:
 	@./go_ver.sh
-nullsrv: $(GO_SRC)
-	go build -o nullsrv $(GO_STRIP) $?
+nullserv: $(GO_SRC)
+	go build -o $@ $(GO_STRIP) $?
 clean:
-	@rm -f file2gobyte nullsrv version.go
+	@rm -f file2gobyte nullserv version.go

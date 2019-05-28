@@ -74,7 +74,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	Stats.v["_transport_http"]++
 	Stats.v[suffix]++
 
-	// Special suffix "stats" emits stats about nullsrv as JSON.
+	// Special suffix ".stats" emits statistics as JSON.
 	if suffix == "stats" {
 		w.Header().Set("Cache-Control", "max-age=0")
 		w.Header().Set("Content-Type", "application/json")

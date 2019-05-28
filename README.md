@@ -21,7 +21,7 @@ a small helper program (written in clean ANSI C) that generates Go's
 If the idea of using make is abhorrent to you then you can just run:
 ```
 $ ./go_ver.sh
-$ go build -o nullsrv *.go
+$ go build -o nullserv *.go
 ```
 
 ## Lower numbered-ports
@@ -51,7 +51,7 @@ $ sudo /sbin/start-stop-daemon -S -b -c nobody:nogroup -x /usr/local/bin/nullser
 
 ## Command line interface
 ```
-Usage of ./nullsrv:
+Usage of ./nullserv:
   -A string
     	https address (default '' = all)
   -P int
@@ -69,7 +69,7 @@ Usage of ./nullsrv:
 ```
 
 ## Config files
-You can use JSON files as a configuration file for nullsrv. There are several
+You can use JSON files as a configuration file for nullserv. There are several
 examples in the example_confs/ subdirectory.  Note that the contents of a
 configuration file overrides what is passed in on the command line. Here's
 a simple config file when listening on the standard ports on all interfaces:
