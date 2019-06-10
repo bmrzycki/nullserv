@@ -12,13 +12,25 @@ Because you're running a DNS ad blocker and you want a server that
 understands several file extensions and returns cached, minimal files for
 each.
 
+When listening to the http port nullserv returns small, but valid,
+responses for several common file suffixes. This reduces web page layout
+problems. For mobile apps a valid file is often intepreted as a "good"
+ad and will effectively remove annoying ads from several mobile apps as
+well as traditional browsers.
+
+When litening to the https port, nullserv aborts the connection early
+in a fairly graceful manner. This side-steps the requirement for
+proxies or self-generated certificate authorities. It's not as elegant
+as http traffic responses but it doesn't require changes to the security
+of client browsers or OSes.
+
 ## How do I install it?
 Pull the repo, install Google Go and run make. Why use make instead of
 go build? I need to dynamically generate version.go as well as compile
 a small helper program (written in clean ANSI C) that generates Go's
-[]byte{...} syntax.
+[]byte{...} array syntax similar to `xxd -i filename` for C headers.
 
-If the idea of using make is abhorrent to you then you can just run:
+If the idea of using `make` is abhorrent to you then you can just run:
 ```
 $ ./go_ver.sh
 $ go build -o nullserv *.go
@@ -43,7 +55,7 @@ $ sudo chown root:nogroup /usr/local/bin/nullserv
 $ sudo chmod 750 /usr/local/bin/nullserv
 
 # Use Linux capabilities
-# sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/nullserv
+$ sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/nullserv
 
 # Launch
 $ sudo /sbin/start-stop-daemon -S -b -c nobody:nogroup -x /usr/local/bin/nullserv
