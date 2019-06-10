@@ -25,10 +25,11 @@ as http traffic responses but it doesn't require changes to the security
 of client browsers or OSes.
 
 ## How do I install it?
-Pull the repo, install Google Go and run make. Why use make instead of
-go build? I need to dynamically generate version.go as well as compile
-a small helper program (written in clean ANSI C) that generates Go's
-[]byte{...} array syntax similar to `xxd -i filename` for C headers.
+Pull the repo, install [Google Go](https://golang.org/) and run
+`make`. Why use `make` instead of `go build`? I need to dynamically
+generate `version.go` as well as compile a small helper program written in
+clean ANSI C that generates Go's `[]byte{...}` array syntax similar to what
+`xxd -i filename` emits for C headers.
 
 If the idea of using `make` is abhorrent to you then you can just run:
 ```
