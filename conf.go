@@ -13,11 +13,11 @@ type ConfFile struct {
 	Http    struct {
 		Address string `json:"address"`
 		Port    int    `json:"port"`
-	}
+	} `json:"http"`
 	Https struct {
 		Address string `json:"address"`
 		Port    int    `json:"port"`
-	}
+	} `json:"https"`
 }
 
 const HTTPMaxAge = 31536000 // RFC 2616, Section 14.21
