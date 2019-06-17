@@ -39,11 +39,11 @@ func AbortTLSListener(conn net.Conn) {
 		'\x00', '\x02', // Message length (2)
 		'\x02',  // Alert level fatal (2)
 		'\x30'}) // Unknown Certificate Authority (48)
-	conn.Close()
+	defer conn.Close()
 
 	Stats.mux.Lock()
-	defer Stats.mux.Unlock()
 	Stats.v["_transport_https"]++
+	Stats.mux.Unlock()
 }
 
 func NullHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,9 +70,9 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Stats.mux.Lock()
-	defer Stats.mux.Unlock()
 	Stats.v["_transport_http"]++
 	Stats.v[suffix]++
+	Stats.mux.Unlock()
 
 	// Special suffix ".stats" emits statistics as JSON.
 	if suffix == "stats" {
