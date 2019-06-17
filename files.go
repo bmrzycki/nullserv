@@ -61,7 +61,9 @@ var AltSuffix = map[string]string{
 	"xht":  "xhtml",
 }
 
-// All known nullfiles
+// NullFiles maps extensions to a minimal, valid, bytestream. The special case
+// where stream == nil sends no data because an empty file is valid. Regardless
+// of data the associated mime type is always sent.
 var NullFiles = map[string]NullFile{
 	"": NullFile{nil, "text/plain"}, // Catch-all empty suffix
 	"bmp": NullFile{[]byte{
