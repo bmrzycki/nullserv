@@ -74,6 +74,16 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	Stats.v[suffix]++
 	Stats.mux.Unlock()
 
+	// Special suffix ".reset" resets statistics
+	if suffix == "reset" {
+		Stats.mux.Lock()
+		for k := range Stats.v {
+			delete(Stats.v, k)
+		}
+		Stats.mux.Unlock()
+		suffix = "stats"
+	}
+
 	// Special suffix ".stats" emits statistics as JSON.
 	if suffix == "stats" {
 		w.Header().Set("Cache-Control", "max-age=0")
