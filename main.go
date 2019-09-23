@@ -69,8 +69,10 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		suffix = realSuffix
 	}
 
-	// Special suffix ".reset" resets statistics
 	Stats.mux.Lock()
+	defer Stats.mux.Unlock()
+
+	// Special suffix ".reset" resets statistics
 	if suffix == "reset" {
 		for k := range Stats.v {
 			delete(Stats.v, k)
@@ -80,7 +82,6 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		Stats.v["_transport_http"]++
 		Stats.v[suffix]++
 	}
-	Stats.mux.Unlock()
 
 	// Special suffix ".stats" emits statistics as JSON.
 	if suffix == "stats" {
