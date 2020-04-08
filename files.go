@@ -58,8 +58,11 @@ var AltSuffix = map[string]string{
 	"m4p":  "mp4",
 	"m4r":  "mp4",
 	"m4v":  "mp4",
+	"res":  "reset",
 	"stat": "stats",
 	"tif":  "tiff",
+	"ver":  "version",
+	"vers": "version",
 	"xht":  "xhtml",
 }
 
@@ -180,10 +183,11 @@ var NullFiles = map[string]NullFile{
 }
 
 func GenVersion() {
-	d := time.Now().Format(time.RFC1123Z)
-	NullFiles["ver"] = NullFile{[]byte("{\n" +
-		"  \"build_date\": \"" + BuildInfo["date"] + "\",\n" +
-		"  \"reset_date\": \"" + d + "\",\n" +
+	NullFiles["version"] = NullFile{[]byte("{\n" +
+		"  \"build_date\": \"" + BuildInfo["build_date"] + "\",\n" +
+		"  \"commit_date\": \"" + BuildInfo["commit_date"] + "\",\n" +
+		"  \"reset_date\": \"" +
+		time.Now().Format(time.RFC1123Z) + "\",\n" +
 		"  \"sha\": \"" + BuildInfo["sha"] + "\",\n" +
 		"  \"version\": \"" + BuildInfo["version"] + "\"\n" +
 		"}",
