@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type NullFile struct {
 	data    []byte
 	content string
@@ -154,12 +156,6 @@ var NullFiles = map[string]NullFile{
 		'\x30', '\x30', '\x2f', '\x73', '\x76', '\x67', '\x22', '\x2f',
 		'\x3e',
 	}, "image/svg+xml"},
-	"ver": NullFile{[]byte("{\n" +
-		"    \"date\"    : \"" + BuildInfo["date"] + "\",\n" +
-		"    \"sha\"     : \"" + BuildInfo["sha"] + "\",\n" +
-		"    \"version\" : \"" + BuildInfo["version"] + "\"\n" +
-		"}",
-	), "application/json"},
 	"wasm": NullFile{[]byte{
 		'\x00', '\x61', '\x73', '\x6d', '\x01', '\x00', '\x00', '\x00',
 	}, "application/wasm"},
@@ -181,4 +177,15 @@ var NullFiles = map[string]NullFile{
 		'\x54', '\x59', '\x3e', '\x5d', '\x3e', '\x3c', '\x5f', '\x2f',
 		'\x3e',
 	}, "application/xml"},
+}
+
+func GenVersion() {
+	d := time.Now().Format(time.RFC1123Z)
+	NullFiles["ver"] = NullFile{[]byte("{\n" +
+		"  \"build_date\": \"" + BuildInfo["date"] + "\",\n" +
+		"  \"reset_date\": \"" + d + "\",\n" +
+		"  \"sha\": \"" + BuildInfo["sha"] + "\",\n" +
+		"  \"version\": \"" + BuildInfo["version"] + "\"\n" +
+		"}",
+	), "application/json"}
 }

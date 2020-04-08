@@ -78,6 +78,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 			delete(Stats.v, k)
 		}
 		suffix = "stats"
+		GenVersion()
 	} else {
 		Stats.v["_transport_http"]++
 		Stats.v[suffix]++
@@ -119,6 +120,7 @@ func main() {
 	ConfInit()
 	Stats = SafeCounter{v: make(map[string]uint64)}
 	MaxAgeVal = "public, max-age=" + strconv.Itoa(Config.MaxAge)
+	GenVersion()
 
 	// Starting HTTP server
 	a := Config.Http.Address + ":" + strconv.Itoa(Config.Http.Port)
