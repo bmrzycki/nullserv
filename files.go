@@ -157,7 +157,6 @@ var NullFiles = map[string]NullFile{
 	"ver": NullFile{[]byte("{\n" +
 		"    \"date\"    : \"" + BuildInfo["date"] + "\",\n" +
 		"    \"sha\"     : \"" + BuildInfo["sha"] + "\",\n" +
-		"    \"state\"   : \"" + BuildInfo["state"] + "\",\n" +
 		"    \"version\" : \"" + BuildInfo["version"] + "\"\n" +
 		"}",
 	), "application/json"},
