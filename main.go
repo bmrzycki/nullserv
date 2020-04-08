@@ -42,8 +42,9 @@ func AbortTLSListener(conn net.Conn) {
 	defer conn.Close()
 
 	Stats.mux.Lock()
+	defer Stats.mux.Unlock()
+
 	Stats.v["_transport_https"]++
-	Stats.mux.Unlock()
 }
 
 func NullHandler(w http.ResponseWriter, r *http.Request) {
