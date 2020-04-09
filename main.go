@@ -63,11 +63,9 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	suffix := ""
 	if idx := strings.LastIndex(u, "."); idx != -1 {
 		suffix = u[idx+1 : len(u)]
-	}
-
-	// If this is an alternate suffix replace with the real one.
-	if realSuffix, ok := AltSuffix[suffix]; ok == true {
-		suffix = realSuffix
+		if real, ok := AltSuffix[suffix]; ok == true {
+			suffix = real
+		}
 	}
 
 	Stats.mux.Lock()
@@ -96,27 +94,26 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		cc = "no-store"
 	}
 
-	// Obtain NullFile with HTML as default.
+	// Obtain data with HTML as default.
 	f, ok := NullFiles[suffix]
 	if ok != true {
 		f = NullFiles["html"]
 	}
+	data := f.data
 
 	// Generate new json stats if requested.
 	if suffix == "stats" {
 		cc = "no-store"
 		json, err := json.MarshalIndent(Stats.v, "", "  ")
-		if err != nil {
-			f.data = []byte("{}")
-		} else {
-			f.data = json
+		if err == nil {
+			data = json
 		}
 	}
 
 	w.Header().Set("Cache-Control", cc)
 	w.Header().Set("Content-Type", f.content)
-	if f.data != nil {
-		w.Write(f.data)
+	if data != nil {
+		w.Write(data)
 	}
 }
 
