@@ -151,6 +151,7 @@ var NullFiles = map[string]NullFile{
 		'\x00', '\x00', '\x20', '\x20', '\x20', '\x62', '\x79', '\x20',
 		'\x61', '\x6c', '\x6f', '\x6b',
 	}, "image/tiff"},
+	"stats": NullFile{[]byte("{}"), "application/json"},
 	"svg": NullFile{[]byte{
 		'\x3c', '\x73', '\x76', '\x67', '\x20', '\x78', '\x6d', '\x6c',
 		'\x6e', '\x73', '\x3d', '\x22', '\x68', '\x74', '\x74', '\x70',

@@ -52,7 +52,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 
 	// RFC 3986, Section 3 lists '?' as a query delimiter,
 	// '#' as a fragment delimiter, and ';' as a sub-delimiter.
-	// All three cannot be part of the path. Remove them.
+	// All three must be stripped from the url.
 	for _, value := range []string{"?", ";", "#"} {
 		if strings.Contains(u, value) {
 			u = strings.Split(u, value)[0]
@@ -65,7 +65,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		suffix = u[idx+1 : len(u)]
 	}
 
-	// If this is an alternate suffix, replace with the real one.
+	// If this is an alternate suffix replace with the real one.
 	if realSuffix, ok := AltSuffix[suffix]; ok == true {
 		suffix = realSuffix
 	}
@@ -73,7 +73,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	Stats.mux.Lock()
 	defer Stats.mux.Unlock()
 
-	// Special suffix ".reset" resets statistics
+	// Special suffix ".reset" resets statistics.
 	if suffix == "reset" {
 		for k := range Stats.v {
 			delete(Stats.v, k)
@@ -85,31 +85,35 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		Stats.v[suffix]++
 	}
 
-	// Special suffix ".stats" emits statistics as JSON.
-	if suffix == "stats" {
-		w.Header().Set("Cache-Control", "max-age=0")
-		w.Header().Set("Content-Type", "application/json")
-		json, err := json.MarshalIndent(Stats.v, "", "    ")
-		if err != nil {
-			w.Write([]byte("{}"))
-		} else {
-			w.Write(json)
-		}
-		return
-	}
-
-	// These are suffixes where we return 404, not found.
+	// Handle the 404 not found suffixes.
 	if _, ok := NotFoundFiles[suffix]; ok == true {
 		http.NotFound(w, r)
 		return
 	}
 
-	// Fetch the null file for this suffix. Use HTML as the default case.
+	cc := MaxAgeVal
+	if suffix == "version" {
+		cc = "no-store"
+	}
+
+	// Obtain NullFile with HTML as default.
 	f, ok := NullFiles[suffix]
 	if ok != true {
 		f = NullFiles["html"]
 	}
-	w.Header().Set("Cache-Control", MaxAgeVal)
+
+	// Generate new json stats if requested.
+	if suffix == "stats" {
+		cc = "no-store"
+		json, err := json.MarshalIndent(Stats.v, "", "  ")
+		if err != nil {
+			f.data = []byte("{}")
+		} else {
+			f.data = json
+		}
+	}
+
+	w.Header().Set("Cache-Control", cc)
 	w.Header().Set("Content-Type", f.content)
 	if f.data != nil {
 		w.Write(f.data)
