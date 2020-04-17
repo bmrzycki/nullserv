@@ -26,8 +26,8 @@ const TCPMaxPort = 65535    // RFC 793, Sction 3.1, 16-bit port size
 var Config ConfFile
 
 func ConfValidate() {
-	if Config.MaxAge < 0 || Config.MaxAge > HTTPMaxAge {
-		log.Fatalf("MaxAge must be in range 0..%d", HTTPMaxAge)
+	if Config.MaxAge < -1 || Config.MaxAge > HTTPMaxAge {
+		log.Fatalf("MaxAge must be in range -1..%d", HTTPMaxAge)
 	}
 
 	if Config.Verbose < 0 {

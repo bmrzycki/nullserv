@@ -121,8 +121,12 @@ func main() {
 	// Initialize globals
 	ConfInit()
 	Stats = SafeCounter{v: make(map[string]uint64)}
-	MaxAgeVal = "public, max-age=" + strconv.Itoa(Config.MaxAge)
 	GenVersion()
+	if Config.MaxAge == -1 {
+		MaxAgeVal = "no-store"
+	} else {
+		MaxAgeVal = "public, max-age=" + strconv.Itoa(Config.MaxAge)
+	}
 
 	// Starting HTTP server
 	a := Config.Http.Address + ":" + strconv.Itoa(Config.Http.Port)

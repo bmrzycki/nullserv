@@ -1,5 +1,5 @@
 {
-    "max_age" : 31536000,
+    "max_age" : -1,
     "verbose" : 2,
     "http" : {
 	"address" : "",
