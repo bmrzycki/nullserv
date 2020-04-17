@@ -91,7 +91,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 
 	cc := MaxAgeVal
 	if suffix == "version" {
-		cc = "no-store"
+		cc = "public, max-age=no-store"
 	}
 
 	// Obtain data with HTML as default.
@@ -103,7 +103,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate new json stats if requested.
 	if suffix == "stats" {
-		cc = "no-store"
+		cc = "public, max-age=no-store"
 		json, err := json.MarshalIndent(Stats.v, "", "  ")
 		if err == nil {
 			data = json
@@ -123,7 +123,7 @@ func main() {
 	Stats = SafeCounter{v: make(map[string]uint64)}
 	GenVersion()
 	if Config.MaxAge == -1 {
-		MaxAgeVal = "no-store"
+		MaxAgeVal = "public, max-age=no-store"
 	} else {
 		MaxAgeVal = "public, max-age=" + strconv.Itoa(Config.MaxAge)
 	}
