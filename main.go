@@ -20,6 +20,7 @@ type SafeCounter struct {
 var MaxAgeVal string
 var Stats SafeCounter
 
+const StatsVersion = 1
 const TLSbufLen = 3
 const TLStypeHandshake = 22
 const TLSversionMajor = 3
@@ -147,6 +148,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	if suffix == "stats" {
 		cc = "no-store"
 		Stats.v["ok"] = 1
+		Stats.v["version"] = StatsVersion
 		json, err := json.MarshalIndent(Stats.v, "", "  ")
 		if err == nil {
 			data = json
