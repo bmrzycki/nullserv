@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -24,7 +25,7 @@ const TLStypeHandshake = 22
 const TLSversionMajor = 3
 
 func AbortTLSListener(conn net.Conn) {
-	transport := "_transport_https_invalid"
+	transport := "https_invalid"
 	tls := false
 	defer conn.Close()
 
@@ -40,18 +41,18 @@ func AbortTLSListener(conn net.Conn) {
 		buf[0] == TLStypeHandshake && buf[1] == TLSversionMajor {
 		switch buf[2] {
 		case 0:
-			transport = "_transport_https_ssl_3.0"
+			transport = "https_ssl_3.0"
 		case 1:
-			transport = "_transport_https_tls_1.0"
+			transport = "https_tls_1.0"
 			tls = true
 		case 2:
-			transport = "_transport_https_tls_1.1"
+			transport = "https_tls_1.1"
 			tls = true
 		case 3:
-			transport = "_transport_https_tls_1.2"
+			transport = "https_tls_1.2"
 			tls = true
 		case 4:
-			transport = "_transport_https_tls_1.3"
+			transport = "https_tls_1.3"
 			tls = true
 		}
 	}
@@ -84,7 +85,14 @@ func AbortTLSListener(conn net.Conn) {
 }
 
 func NullHandler(w http.ResponseWriter, r *http.Request) {
-	u, _ := url.QueryUnescape(r.URL.String())
+	Stats.mux.Lock()
+	defer Stats.mux.Unlock()
+
+	u, err := url.QueryUnescape(r.URL.String())
+	if err != nil {
+		Stats.v["http_invalid_url"]++
+		return
+	}
 
 	// RFC 3986, Section 3 lists '?' as a query delimiter,
 	// '#' as a fragment delimiter, and ';' as a sub-delimiter.
@@ -104,9 +112,6 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	Stats.mux.Lock()
-	defer Stats.mux.Unlock()
-
 	// Special suffix ".reset" resets statistics.
 	if suffix == "reset" {
 		for k := range Stats.v {
@@ -115,8 +120,9 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 		suffix = "stats"
 		GenVersion()
 	} else {
-		Stats.v["_transport_http"]++
-		Stats.v[suffix]++
+		s := fmt.Sprintf("http_%d.%d", r.ProtoMajor, r.ProtoMinor)
+		Stats.v[s]++
+		Stats.v["suffix_"+suffix]++
 	}
 
 	// Handle the 404 not found suffixes.
@@ -140,6 +146,7 @@ func NullHandler(w http.ResponseWriter, r *http.Request) {
 	// Generate new json stats if requested.
 	if suffix == "stats" {
 		cc = "no-store"
+		Stats.v["ok"] = 1
 		json, err := json.MarshalIndent(Stats.v, "", "  ")
 		if err == nil {
 			data = json
