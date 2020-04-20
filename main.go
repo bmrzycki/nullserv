@@ -19,40 +19,40 @@ type SafeCounter struct {
 var MaxAgeVal string
 var Stats SafeCounter
 
+const TLSbufLen = 3
+const TLStypeHandshake = 22
+const TLSversionMajor = 3
+
 func AbortTLSListener(conn net.Conn) {
 	transport := "_transport_https_invalid"
 	tls := false
 	defer conn.Close()
 
-	// The first 3 bytes are all we need of the request to determine
-	// if the client sent a properly-formed TLS handshake.
-	//   byte 0    = (ContentType)      SSL/TLS record type
-	//   bytes 1-2 = (ProtocolVersion)  SSL/TLS version (major/minor)
+	// The first 3 bytes determine a properly-formed TLS handshake.
+	//   byte 0  ContentType)     SSL/TLS record type
+	//   byte 1  ProtocolVersion  SSL/TLS version major
+	//   byte 2  ProtocolVersion  SSL/TLS version minor
 	// https://tools.ietf.org/html/rfc5246#appendix-A.1
 	// https://serializethoughts.com/2014/07/27/dissecting-tls-client-hello-message
-	buf := make([]byte, 3)
-	num, err := conn.Read(buf)
-	if num == 3 && err == nil {
-		// ContentType buf[0] must be handshake(22)
-		// ProtocolVersion major buf[1] must be 3
-		if buf[0] == 22 && buf[1] == 3 {
-			minor := buf[2]
-			switch minor {
-			case 0:
-				transport = "_transport_https_ssl_3.0"
-			case 1:
-				transport = "_transport_https_tls_1.0"
-				tls = true
-			case 2:
-				transport = "_transport_https_tls_1.1"
-				tls = true
-			case 3:
-				transport = "_transport_https_tls_1.2"
-				tls = true
-			case 4:
-				transport = "_transport_https_tls_1.3"
-				tls = true
-			}
+	buf := make([]byte, TLSbufLen)
+	n, err := conn.Read(buf)
+	if err == nil && n == TLSbufLen &&
+		buf[0] == TLStypeHandshake && buf[1] == TLSversionMajor {
+		switch buf[2] {
+		case 0:
+			transport = "_transport_https_ssl_3.0"
+		case 1:
+			transport = "_transport_https_tls_1.0"
+			tls = true
+		case 2:
+			transport = "_transport_https_tls_1.1"
+			tls = true
+		case 3:
+			transport = "_transport_https_tls_1.2"
+			tls = true
+		case 4:
+			transport = "_transport_https_tls_1.3"
+			tls = true
 		}
 	}
 
