@@ -20,14 +20,15 @@ type SafeCounter struct {
 var MaxAgeVal string
 var Stats SafeCounter
 
-const StatsVersion = 2
+const StatsVersion = 3
 const TLSbufLen = 3
 const TLStypeHandshake = 22
 const TLSversionMajor = 3
 
 func AbortTLSListener(conn net.Conn) {
-	transport := "https_invalid"
+	transport := ""
 	tls := false
+	known := false
 	defer conn.Close()
 
 	// The first 3 bytes determine a properly-formed TLS handshake.
@@ -40,22 +41,29 @@ func AbortTLSListener(conn net.Conn) {
 	n, err := conn.Read(buf)
 	if err == nil && n == TLSbufLen &&
 		buf[0] == TLStypeHandshake && buf[1] == TLSversionMajor {
+		known = true
+		tls = true
 		switch buf[2] {
 		case 0:
 			transport = "https_ssl_3.0"
+			tls = false
 		case 1:
 			transport = "https_tls_1.0"
-			tls = true
 		case 2:
 			transport = "https_tls_1.1"
-			tls = true
 		case 3:
 			transport = "https_tls_1.2"
-			tls = true
 		case 4:
 			transport = "https_tls_1.3"
-			tls = true
+		default:
+			known = false
+			tls = false
 		}
+	}
+
+	if known == false {
+		transport = fmt.Sprintf("https_invalid_%02x_%02x_%02x",
+			buf[0], buf[1], buf[2])
 	}
 
 	Stats.mux.Lock()
