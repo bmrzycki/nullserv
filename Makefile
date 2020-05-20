@@ -1,4 +1,4 @@
-GO_SRC = conf.go files.go main.go version.go
+GO_SRC = conf.go files.go main.go buildinfo.go
 
 # In non-debug builds remove symbol information (-s) and
 # DWARF debug information (-w).
@@ -7,13 +7,13 @@ ifneq ($(DEBUG),)
 	GO_STRIP =
 endif
 
-.PHONY: clean all version.go
+.PHONY: clean all buildinfo.go
 all: file2gobyte nullserv
 file2gobyte: file2gobyte.c
 	$(CC) -O3 -Wall $< -o $@
-version.go:
-	@./go_ver.sh
-nullserv: version.go
+buildinfo.go:
+	@./mkbuildinfo.sh
+nullserv: buildinfo.go
 	go build -o $@ $(GO_STRIP) $(GO_SRC)
 clean:
-	@rm -f file2gobyte nullserv version.go
+	@rm -f buildinfo.go file2gobyte nullserv
