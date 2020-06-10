@@ -1,65 +1,79 @@
 # nullserv
 
-## What is it?
-It's a simple null http and https server originally written using Go 1.5.
-The language has evolved considerably since then but I've tried to keep
-the code as close to this version as I can. This also means I haven't
-pulled in any third-party packages to minimize dependency issues on
-older embedded devices.
+A simple null file http and https server originally written using Go 1.5.
+
+Go has evolved considerably since 1.5 but I've tried to keep
+the code as close to this version. I also haven't used any third-party
+packages to minimize dependency build issues.  If your platform has
+Go then `nullserv` will likely run on it.
 
 ## Why would I want it?
 Because you're running a DNS ad blocker and you want a server that
-understands several file extensions and returns cached, minimal files for
-each.
+returns minimal valid files for each based on file suffixes in the URL.
 
-When listening to the http port nullserv returns small, but valid,
-responses for several common file suffixes. This reduces web page layout
-problems. For mobile apps a valid file is often intepreted as a "good"
-ad and will effectively remove annoying ads from several mobile apps as
-well as traditional browsers.
+`nullserv` reduces web page layout problems when blocking ads. It also
+fixes layout and "good" ad detection for moble apps because the responses
+from `nullserv` are valid images.
 
-When litening to the https port, nullserv aborts the connection early
-in a fairly graceful manner. This side-steps the requirement for
-proxies or self-generated certificate authorities. It's not as elegant
-as http traffic responses but it doesn't require changes to the security
-of client browsers or OSes.
+The modern web as moved on since I started this project with almost all
+websites using encrypted https traffic for ads and trackers. The good
+news is `nullserv` also listens on https port 443 and aborts all SSL/TLS
+connections early. It claims the client's SSL certificate of authority (CA)
+is invalid. This side-steps the requirement for proxies or self-generated
+certificate authorities needed to run a real https server.
 
 ## How do I install it?
 Pull the repo, install [Google Go](https://golang.org/) and run
-`make`. Why use `make` instead of `go build`? I need to dynamically
-generate `version.go` as well as compile a small helper program written in
-clean ANSI C that generates Go's `[]byte{...}` array syntax similar to what
-`xxd -i filename` emits for C headers.
+`make`. I use `make` instead of `go build` to dynamically
+generate `buildinfo.go` as well as compile the helper `file2gobyte.c`
+which emits Go's `[]byte{...}` array syntax similar to 
+`xxd -i filename` for C.
 
-If the idea of using `make` is abhorrent to you then you can just run:
+If you prefer to manually build `nullserv` run:
 ```
-$ ./go_ver.sh
+$ cd /path/to/cloned/repo/nullserv
+$ cc -Wall -O3 -o file2gobyte file2gobyte.c  # OPTIONAL
+$ sh mkbuildinfo.sh
 $ go build -o nullserv *.go
 ```
 
-## Lower numbered-ports
-Listening on TCP ports lower than 1024 usually requires special OS access.
-On Linux, you can either run as root or use setcap to give the created
-nullserv binary access to low number ports. It's also a good idea to use
-a daemon launcher like start-stop-daemon to run it.
+There's also a `Dockerfile` to build and run `nullserv` inside a Docker
+instance.
 
-On my setup I perform the following actions to deploy nullserv and run it
-with reduced permissions.
+The emitted `nullserv` binary is self-contained and relies on no external
+files (except maybe a JSON config file). You may run it from within the
+repo or copy it to somewere common like `/usr/local/bin`.
+
+## Running on low numbered TCP ports as non-root
+It's recommended to run daemons as a non-root user whenever possible.
+Unfortunately `nullserv` wants to bind to ports 80 (http) and 443 (https)
+by default. Most Unix operating systems forbid anyone but root to bind to
+these privileged ports lower than 1024. The [Go language also has
+problems](https://github.com/golang/go/issues/1435) with `Setuid/Setgid`
+across all threads.
+
+The simplest way to run `nullserv` as non-root is to temporarily disable
+privileged ports checking at the OS level, run `nullserv` as a daemon,
+and re-enable privileged port checking:
 
 ```
-# Build
-$ make clean && make -j
+# (as user root or via sudo)
+# Disable unprivileged port binding on 80 and 443 to allow nullserv
+# to run as user nobody. After the daemon starts re-enable on < 1024.
+# Even though this is in the net.ipv4 namespace it also allows binding
+# of IPv6 ports.
+sysctl -q net.ipv4.ip_unprivileged_port_start=80
 
-# Copy binary and change the binary permissions
-$ sudo cp nullserv /usr/local/bin
-$ sudo chown root:nogroup /usr/local/bin/nullserv
-$ sudo chmod 750 /usr/local/bin/nullserv
+# start-stop-daemon if found in any Debian, or openrc, based distro.
+# Other distros have comperable dameonizing tools. Red Hat based
+# distros can use a combination of 'nohup' and 'runner'.
+start-stop-daemon --start --background \
+    --exec "/path/to/binary/nullserv" \
+    --stdout "$LOG/nullserv.log" --stderr "$LOG/nullserv.log" \
+    --user nobody
 
-# Use Linux capabilities
-$ sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/nullserv
-
-# Launch
-$ sudo /sbin/start-stop-daemon -S -b -c nobody:nogroup -x /usr/local/bin/nullserv
+# re-enable low port checking
+sysctl -q net.ipv4.ip_unprivileged_port_start=1024
 ```
 
 ## Command line interface
@@ -82,30 +96,85 @@ Usage of ./nullserv:
 ```
 
 ## Config files
-You can use JSON files as a configuration file for nullserv. There are several
-examples in the example_confs/ subdirectory.  Note that the contents of a
-configuration file overrides what is passed in on the command line. Here's
-a simple config file when listening on the standard ports on all interfaces:
+`nullserv` supports JSON configuration files as an alternative to command
+line arguments. See the `example_confs/` subdirectory for a few use-cases.
+The contents of the file takes precedence over command line arguments and
+any missing parameters use `nullserv` defaults.
+
+For example if you only wish to change the `max_age` parameter:
+
 ```
+$ cat max_age.conf
+{ "max_age" : 31536000 }
+$ nullserv -c max_age.conf
+```
+
+## Internal running state
+`nullserv` interprets certain file suffixes as requests for internal state.
+
+### Version and build info (.ver)
+Any URL ending with `.ver` or `.version` will return version information in
+JSON:
+
+```
+$ curl http://127.0.0.1/.ver
 {
-    "max_age" : 31536000,
-    "verbose" : 0,
-    "http" : {
-	"address" : "",
-	"port" : 80
-    },
-    "https" : {
-	"address" : "",
-	"port" : 443
-    }
+  "build_date": "Wed, 10 Jun 2020 09:44:58 -0500",
+  "commit_date": "Sat, 30 May 2020 17:33:56 -0500",
+  "reset_date": "Wed, 10 Jun 2020 12:45:34 -0500",
+  "sha": "56596c6",
+  "version": "1.3.0"
 }
 ```
 
-# Background
+### Statistics (.stat)
+Any URL ending with `.stat` or `.stats` will return statistics:
+
+```
+$ curl http://127.0.0.1/.stat
+{
+  "http_1.1": 6,
+  "https_tls_1.0": 9,
+  "stats_ok": 1,
+  "stats_version": 3,
+  "stats_" : 1,
+  "suffix_stats": 3,
+  "suffix_version": 2
+}
+```
+
+Keys starting with `http_` and `https_` track the client protocol requests
+counts. In the example above we've seen 6 http 1.1 and 9 https 1.0
+connections.
+
+The `stats_` keys are metadata for this structure. The `stats_ok` value
+returns `0` for false and `1` for true if the JSON data is valid. The
+`stats_version` is a monotonically increasing version number which will
+be incremented whenever the layout of this JSON response is altered.
+
+The `suffix_*` keys show counts for each of the file suffixes encountered.
+The above data has seen 1 request for a URL with no file suffix, 3 for 
+file suffix `.stats`, and 2 for file suffix `.version`.
+
+### Resetting statistics (.res)
+Any URL ending with `.res` or `.reset` will reset all internal statistics.
+The response is identical to `.stat` after resetting all counts. This also
+updates `reset_date` in the `.ver` output to the current time on the host
+running `nullserv`.
+
+```
+$ curl http://127.0.0.1/.res
+{
+  "stats_ok": 1,
+  "stats_version": 3
+}
+```
+
+## Background
 The idea for nullserv came from another GitHub project,
 [pixelserv](https://github.com/h0tw1r3/pixelserv). I wanted a real project
 to learn how to use Google Go. The running binary on a 64-bit x86 host
-consumes about 8MB of real memory, mostly from Go libraries. It's not as
-small as pixelserv is, but I think it's a lot easier to extend and
-maintain. Go's low-level http library and go routines make scalability
+consumes about 8MB of real memory (mostly Go libraries). It's not as
+small as pixelserv is but I think it's a lot easier to extend and
+maintain. Go's low-level `http` library and go routines make scalability
 a breeze.
