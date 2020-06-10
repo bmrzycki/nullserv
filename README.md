@@ -25,9 +25,7 @@ certificate authorities needed to run a real https server.
 ## How do I install it?
 Pull the repo, install [Google Go](https://golang.org/) and run
 `make`. I use `make` instead of `go build` to dynamically
-generate `buildinfo.go` as well as compile the helper `file2gobyte.c`
-which emits Go's `[]byte{...}` array syntax similar to 
-`xxd -i filename` for C.
+generate `buildinfo.go` as well as `file2gobyte`.
 
 If you prefer to manually build `nullserv` run:
 ```
@@ -36,6 +34,10 @@ $ cc -Wall -O3 -o file2gobyte file2gobyte.c  # OPTIONAL
 $ sh mkbuildinfo.sh
 $ go build -o nullserv *.go
 ```
+
+The optional `file2gobyte` utility emits Go's `[]byte{...}` array syntax
+on stdout similar to `xxd -i filename` for C. It's not necessary to
+run `nullserv` and only used to assist adding file data to `files.go`.
 
 There's also a `Dockerfile` to build and run `nullserv` inside a Docker
 instance.
@@ -46,15 +48,15 @@ repo or copy it to somewere common like `/usr/local/bin`.
 
 ## Running on low numbered TCP ports as non-root
 It's recommended to run daemons as a non-root user whenever possible.
-Unfortunately `nullserv` wants to bind to ports 80 (http) and 443 (https)
+Unfortunately `nullserv` bind to TCP ports 80 (http) and 443 (https)
 by default. Most Unix operating systems forbid anyone but root to bind to
-these privileged ports lower than 1024. The [Go language also has
+privileged ports lower than 1024. The [Go language also has
 problems](https://github.com/golang/go/issues/1435) with `Setuid/Setgid`
-across all threads.
+across all threads which prevents handling the issue inside `nullserv`.
 
 The simplest way to run `nullserv` as non-root is to temporarily disable
 privileged ports checking at the OS level, run `nullserv` as a daemon,
-and re-enable privileged port checking:
+and re-enable privileged port checking. Here's a Linux eample:
 
 ```
 # (as user root or via sudo)
@@ -101,13 +103,17 @@ line arguments. See the `example_confs/` subdirectory for a few use-cases.
 The contents of the file takes precedence over command line arguments and
 any missing parameters use `nullserv` defaults.
 
-For example if you only wish to change the `max_age` parameter:
+For example if you only wish to change the `max_age` parameter to use
+`no-store` and never have clients cache responses:
 
 ```
 $ cat max_age.conf
-{ "max_age" : 31536000 }
+{ "max_age" : -1 }
 $ nullserv -c max_age.conf
 ```
+
+The `ConfFile` struct in `conf.go` lists all the valid JSON parameters
+names as does the JSON file `example_confs/all.json`.
 
 ## Internal running state
 `nullserv` interprets certain file suffixes as requests for internal state.
@@ -137,7 +143,7 @@ $ curl http://127.0.0.1/.stat
   "https_tls_1.0": 9,
   "stats_ok": 1,
   "stats_version": 3,
-  "stats_" : 1,
+  "suffix_" : 1,
   "suffix_stats": 3,
   "suffix_version": 2
 }
@@ -147,14 +153,15 @@ Keys starting with `http_` and `https_` track the client protocol requests
 counts. In the example above we've seen 6 http 1.1 and 9 https 1.0
 connections.
 
-The `stats_` keys are metadata for this structure. The `stats_ok` value
-returns `0` for false and `1` for true if the JSON data is valid. The
+The `stats_` keys are meta-data. The `stats_ok` value returns `1` if
+the `.stats` structure is valid, correct data (`0` otherwise). The
 `stats_version` is a monotonically increasing version number which will
 be incremented whenever the layout of this JSON response is altered.
 
-The `suffix_*` keys show counts for each of the file suffixes encountered.
-The above data has seen 1 request for a URL with no file suffix, 3 for 
-file suffix `.stats`, and 2 for file suffix `.version`.
+The `suffix_*` keys show counts for each of the file suffixes encountered
+since the last `.reset` event. The above data has 1 request for a URL
+with no file suffix, 3 for file suffix `.stats`, and 2 for file
+suffix `.version`.
 
 ### Resetting statistics (.res)
 Any URL ending with `.res` or `.reset` will reset all internal statistics.
