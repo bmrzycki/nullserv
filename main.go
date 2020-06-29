@@ -32,7 +32,7 @@ func AbortTLSListener(conn net.Conn) {
 	defer conn.Close()
 
 	// The first 3 bytes determine a properly-formed TLS handshake.
-	//   byte 0  ContentType)     SSL/TLS record type
+	//   byte 0  ContentType      SSL/TLS record type
 	//   byte 1  ProtocolVersion  SSL/TLS version major
 	//   byte 2  ProtocolVersion  SSL/TLS version minor
 	// https://tools.ietf.org/html/rfc5246#appendix-A.1
